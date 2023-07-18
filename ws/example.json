@@ -1,0 +1,8 @@
+{
+    "username": "User0",
+    "action": "transfer",
+    "args":{
+        "dest": "User1",
+        "msg": "Hello there!"
+    }
+}

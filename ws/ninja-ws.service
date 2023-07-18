@@ -1,0 +1,9 @@
+[Unit]
+Description=Websocket server for Ninja
+
+[Service]
+WorkingDirectory=/home/lrq619/proj/Ninja-backend/ws
+ExecStart=/home/lrq619/proj/Ninja-backend/env/bin/python /home/lrq619/proj/Ninja-backend/ws/main.py
+
+[Install]
+WantedBy=multi-user.target
