@@ -59,11 +59,27 @@ class BattleField:
     async def parse_gestures(self, username:str, gesture_type:str):
         player = self.get_player(username)
         enemy = self.get_enemy(username)
+
+        # By Lechen: Add buffer behavior
+        player.gesture_buffer.append(gesture_type)
+        add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
+
         if gesture_type == "ILoveYou":
             await self.attack(player, enemy, gesture_type)
         elif gesture_type == "Thumb_Up":
             await self.light_shield(player, gesture_type)
         pass   
+
+# By Lechen: parse speech
+    async def parse_speech(self, username:str, speech_type:str):
+        player = self.get_player(username)
+        enemy = self.get_enemy(username)
+
+        if speech_type == "ILoveYou":
+            await self.attack(player, enemy, speech_type)
+        #elif gesture_type == "Thumb_Up":
+        #    await self.light_shield(player, gesture_type)
+        #pass   
 
     
         
@@ -74,12 +90,12 @@ class BattleField:
         await self.broadcast_delay(message=str(game_start_message))
     
     async def attack(self, player:Player, enemy:Player, gesture_type:str):
-        add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
+        #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
         light_attack_task = asyncio.create_task(self.light_attack(player))
         results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
 
     async def light_shield(self, player:Player, gesture_type:str):
-        add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
+        #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.LIGHT_SHIELD.value))
         
 

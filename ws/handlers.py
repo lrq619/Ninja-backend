@@ -59,6 +59,21 @@ async def post_gesture(username:str, message_args:dict) -> str:
         debug("Cannot find user %s's room"%username)
     return NULL_RESPONSE
 
+# By Lechen: Post speech
+async def post_speech(username:str, message_args:dict) -> str:
+    room = GAME_HALL.find_room_with_user(username)
+    battlefiled = room.battlefiled
+    speech_type = message_args['speech_type']
+    if room != None:
+        # broadcast_args = {'gesture_source':username,'gesture_type':gesture_type}
+        # broadcast_response = WS_response(source="ws_server",action='post_gesture',code=0,args=broadcast_args)
+        await battlefiled.parse_speech(username, speech_type=speech_type)
+        
+        # await room.broadcast(str(broadcast_response))
+    else:
+        debug("Cannot find user %s's room"%username)
+    return NULL_RESPONSE
+
 async def quit_room(username:str, message_args:dict) -> str:
     room_id = message_args['room_id']
     room = GAME_HALL.find_room(room_id)
