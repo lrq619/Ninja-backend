@@ -61,25 +61,18 @@ class BattleField:
         enemy = self.get_enemy(username)
 
         # By Lechen: Add buffer behavior
-        player.gesture_buffer.append(gesture_type)
         add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
-
-        if gesture_type == "ILoveYou":
-            await self.attack(player, enemy, gesture_type)
-        elif gesture_type == "Thumb_Up":
-            await self.light_shield(player, gesture_type)
-        pass   
+     
 
 # By Lechen: parse speech
     async def parse_speech(self, username:str, speech_type:str):
         player = self.get_player(username)
         enemy = self.get_enemy(username)
 
-        if speech_type == "ILoveYou":
+        if speech_type == "RELEASE":
             await self.attack(player, enemy, speech_type)
-        #elif gesture_type == "Thumb_Up":
-        #    await self.light_shield(player, gesture_type)
-        #pass   
+        elif speech_type == "CANCEL":
+            await self.clear_gesture_buffer(player)  
 
     
         
@@ -90,21 +83,62 @@ class BattleField:
         await self.broadcast_delay(message=str(game_start_message))
     
     async def attack(self, player:Player, enemy:Player, gesture_type:str):
-        #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
-        light_attack_task = asyncio.create_task(self.light_attack(player))
-        results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
+        
+        '''
+            Closed_Fist -> Light attack
+            Closed_Fist + Open_Palm -> Heavy attack
+            Victory -> Light shield
+            Thumb_up + ILoveYou -> Heavy shield
+        '''
+        recent_gesture = ("NULL", "NULL")
+
+        if(len(player.gesture_buffer) == 0):
+            pass
+        elif(len(player.gesture_buffer) == 1):
+            recent_gesture = ("NULL", player.gesture_buffer[-1])
+        else:
+            recent_gesture = (player.gesture_buffer[-2], player.gesture_buffer[-1])
+
+        # Light attack
+        if(recent_gesture[1] == "Closed_Fist"):
+            asyncio.create_task(self.light_attack(player))
+            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
+        # Heavy attack
+        elif(recent_gesture == ("Closed_Fist", "Open_Palm")):
+            asyncio.create_task(self.heavy_attack(player))
+            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
+        # Light shield
+        elif(recent_gesture[1] == "Victory"):
+            asyncio.create_task(self.light_shield(player))
+        # Heavy shield
+        elif(recent_gesture == ("Thumb_up", "ILoveYou")):
+            asyncio.create_task(self.heavy_shield(player))
+        # TODO: Attack failed
+        else:
+            pass
+
 
     async def light_shield(self, player:Player, gesture_type:str):
         #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.LIGHT_SHIELD.value))
-        
+    
+    async def heavy_shield(self, player:Player, gesture_type:str):
+        change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.HEAVY_SHIELD.value))
 
     async def add_gesture_buffer(self, player:Player, gesture_type:str):
         debug("add gesture: %s to %s's buffer"%(gesture_type, player.username))
+        player.gesture_buffer.append(gesture_type)
         add_buffer_message = {"source":player.username, "action":"AddGestureBuffer","args":{"gesture_type":gesture_type},"code":0}
         await self.broadcast_delay(str(add_buffer_message))
 
+    async def clear_gesture_buffer(self, player:Player):
+        debug("clear %s's buffer"%(player.username))
+        player.gesture_buffer = []
+        clear_buffer_message = {"source":player.username, "action":"ClearGestureBuffer","args":{},"code":0}
+        await self.broadcast_delay(str(clear_buffer_message))
+
     async def light_attack(self,player:Player):
+        debug("%s released a light attack!"%(player.username))
         light_attack_message = {
             "source":player.username, 
             "action":"ReleaseSkill",
@@ -113,6 +147,16 @@ class BattleField:
             }
         await self.broadcast_delay(str(light_attack_message))
     
+    async def heavy_attack(self,player:Player):
+        debug("%s released a heavy attack!"%(player.username))
+        heavy_attack_message = {
+            "source":player.username, 
+            "action":"ReleaseSkill",
+            "args":{"skill":"HEAVY_ATTACK"},
+            "code":0
+            }
+        await self.broadcast_delay(str(heavy_attack_message))
+
     async def change_player_status(self, player:Player, status:PStatus, time_out:int=0):
         await asyncio.sleep(time_out / 1000)
         debug("player %s change status"%player.username)

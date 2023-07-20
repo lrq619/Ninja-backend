@@ -113,6 +113,7 @@ handler_dict = {
     'join_room':join_room,
     'create_room':create_room,
     'post_gesture':post_gesture,
+    'post_speech':post_speech,
     'quit_room':quit_room,
     'start_play':start_play,
 }
