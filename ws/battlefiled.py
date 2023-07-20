@@ -69,6 +69,8 @@ class BattleField:
         player = self.get_player(username)
         enemy = self.get_enemy(username)
 
+        debug("Received speech %s from user %s"%(speech_type, player.username))
+
         if speech_type == "RELEASE":
             await self.attack(player, enemy, speech_type)
         elif speech_type == "CANCEL":
@@ -99,6 +101,8 @@ class BattleField:
         else:
             recent_gesture = (player.gesture_buffer[-2], player.gesture_buffer[-1])
 
+        debug("When attacking, %s's recent gestures are: %s, %s."%(player.username, recent_gesture[0], recent_gesture[1]))
+
         # Light attack
         if(recent_gesture[1] == "Closed_Fist"):
             asyncio.create_task(self.light_attack(player))
@@ -115,14 +119,16 @@ class BattleField:
             asyncio.create_task(self.heavy_shield(player))
         # TODO: Attack failed
         else:
-            pass
+            debug("%s's Attack Failed!"%(player.username))
 
 
     async def light_shield(self, player:Player, gesture_type:str):
         #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
+        debug("%s released a light shield!"%(player.username))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.LIGHT_SHIELD.value))
     
     async def heavy_shield(self, player:Player, gesture_type:str):
+        debug("%s released a heavy shield!"%(player.username))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.HEAVY_SHIELD.value))
 
     async def add_gesture_buffer(self, player:Player, gesture_type:str):
