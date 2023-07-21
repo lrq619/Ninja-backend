@@ -4,7 +4,7 @@ from utils import is_socket_exist_and_connected,debug, send_msg_with_debug
 import time
 import asyncio
 
-ATTACK_CHECK_INTERVAL = 10000 # in ms
+ATTACK_CHECK_INTERVAL = 2500 # in ms
 
 class PStatus(Enum):
     NORMAL = 0
@@ -106,28 +106,32 @@ class BattleField:
         # Light attack
         if(recent_gesture[1] == "Closed_Fist"):
             asyncio.create_task(self.light_attack(player))
+            asyncio.create_task(self.clear_gesture_buffer(player))
             results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
         # Heavy attack
         elif(recent_gesture == ("Closed_Fist", "Open_Palm")):
+            asyncio.create_task(self.clear_gesture_buffer(player))
             asyncio.create_task(self.heavy_attack(player))
             results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
         # Light shield
         elif(recent_gesture[1] == "Victory"):
+            asyncio.create_task(self.clear_gesture_buffer(player))
             asyncio.create_task(self.light_shield(player))
         # Heavy shield
-        elif(recent_gesture == ("Thumb_up", "ILoveYou")):
+        elif(recent_gesture == ("Thumb_Up", "ILoveYou")):
+            asyncio.create_task(self.clear_gesture_buffer(player))
             asyncio.create_task(self.heavy_shield(player))
         # TODO: Attack failed
         else:
             debug("%s's Attack Failed!"%(player.username))
 
 
-    async def light_shield(self, player:Player, gesture_type:str):
+    async def light_shield(self, player:Player):
         #add_buffer_task = asyncio.create_task(self.add_gesture_buffer(player,gesture_type))
         debug("%s released a light shield!"%(player.username))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.LIGHT_SHIELD.value))
     
-    async def heavy_shield(self, player:Player, gesture_type:str):
+    async def heavy_shield(self, player:Player):
         debug("%s released a heavy shield!"%(player.username))
         change_status_task = asyncio.create_task(self.change_player_status(player=player, status=PStatus.HEAVY_SHIELD.value))
 
