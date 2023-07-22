@@ -171,10 +171,18 @@ class BattleField:
         await asyncio.sleep(time_out / 1000)
         debug("player %s change status"%player.username)
         player.status = status # change player's status in server
+        skill = "LIGHT_SHIELD"
+        if status == PStatus.HEAVY_SHIELD:
+            skill = "HEAVY_SHIELD"
+        elif status == PStatus.LIGHT_SHIELD:
+            skill = "LIGHT_SHIELD"
+        elif status == PStatus.NORMAL:
+            skill = "BACK_NORMAL"
+            
         change_status_message = {
             "source":player.username, 
             "action":"ReleaseSkill",
-            "args":{"skill":"LIGHT_SHIELD"},
+            "args":{"skill":skill},
             "code":0
         }
         await self.broadcast_delay(str(change_status_message))

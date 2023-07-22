@@ -141,9 +141,9 @@ def loginUser(request):
     response = {}
     try:
         user = NinjaUser.objects.get(username=username)
-        if user.status != 'offline':
-            response['message'] = "User is currently logged in!"
-            return JsonResponse(response,status=400)
+        # if user.status != 'offline':
+        #     response['message'] = "User is currently logged in!"
+        #     return JsonResponse(response,status=400)
         user.status = 'online'
         user.save()
         response['message'] = "User %s successfully logged in!"%username
