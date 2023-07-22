@@ -82,6 +82,7 @@ class BattleField:
     async def game_start(self):
         username0 = list(self.players.keys())[0]
         username1 = list(self.players.keys())[1]
+        
         game_start_message = {"source":"ws_server", "action":"GameStart", "args":{"username0":username0,"username1":username1},"code":0}
         await self.broadcast_delay(message=str(game_start_message))
     
@@ -192,23 +193,33 @@ class BattleField:
             "args":{"skill":skill},
             "code":0
         }
-        if not skill == "BACK_NORMAL":
-            await self.broadcast_delay(str(change_status_message))
+        
+        await self.broadcast_delay(str(change_status_message))
 
 
-    async def attack_result_check(self, player:Player,enemy:Player, time_out:int = 0):
+    async def attack_result_check(self, player:Player,enemy:Player, is_heavy:bool, time_out:int = 0):
         await asyncio.sleep(time_out / 1000)
         debug("check enemy %s's status: %d"%(enemy.username,enemy.status.value))
         attack_result_message = {"source":enemy.username, "action":"","args":{},"code":0}
-        if enemy.status == PStatus.LIGHT_SHIELD:
-            attack_result_message["action"] = "DefendSuccess"
-            attack_result_message["args"]["skill"] = "LIGHT_SHIELD"
-        elif enemy.status == PStatus.HEAVY_SHIELD:
-            attack_result_message["action"] = "DefendSuccess"
-            attack_result_message["args"]["skill"] = "HEAVY_SHIELD"
-        else:
-            attack_result_message["action"] = "ChangeHP"
-            attack_result_message["args"]["value"] = -10
+        if not is_heavy:
+            if enemy.status == PStatus.LIGHT_SHIELD:
+                attack_result_message["action"] = "DefendSuccess"
+                attack_result_message["args"]["skill"] = "LIGHT_SHIELD"
+            elif enemy.status == PStatus.HEAVY_SHIELD:
+                attack_result_message["action"] = "DefendSuccess"
+                attack_result_message["args"]["skill"] = "HEAVY_SHIELD"
+            else:
+                attack_result_message["action"] = "ChangeHP"
+                attack_result_message["args"]["value"] = -10
+        if is_heavy:
+            if enemy.status == PStatus.HEAVY_SHIELD:
+                attack_result_message["action"] = "DefendSuccess"
+                attack_result_message["args"]["skill"] = "HEAVY_SHIELD"
+            else:
+                attack_result_message['action'] = "ChangeHP"
+                attack_result_message["args"]["value"] = -20
+                
+
         await self.broadcast_delay(str(attack_result_message))
         
 
