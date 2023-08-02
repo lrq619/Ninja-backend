@@ -3,6 +3,7 @@ from threading import Timer
 from utils import is_socket_exist_and_connected,debug, send_msg_with_debug
 import time
 import asyncio
+from protocol import WS_message, WS_response
 
 ATTACK_CHECK_INTERVAL = 3000 # in ms
 SHIELD_INTERVAL = 1000
@@ -18,6 +19,7 @@ class Player:
         self.status:PStatus = pstatus
         self.websocket = websocket
         self.gesture_buffer = []
+        self.hp = 100
 
     def light_shield(self, time_out=0): # time_out in milliseconds
         time.sleep(float(time_out/1000))
@@ -76,6 +78,8 @@ class BattleField:
             await self.release(player, enemy, speech_type)
         elif speech_type == "CANCEL":
             await self.clear_gesture_buffer(player)  
+        elif speech_type == "MENU":
+            await self.invoke_menu(player)
 
     
         
@@ -92,7 +96,7 @@ class BattleField:
             Closed_Fist -> Light attack
             Closed_Fist + Open_Palm -> Heavy attack
             Victory -> Light shield
-            Thumb_up + ILoveYou -> Heavy shield
+            Thumb_Up + ILoveYou -> Heavy shield
         '''
         if player.status != PStatus.NORMAL:
             debug("player %s is in status: %d, cannot release anything!"%(player.username,player.status.value))
@@ -112,12 +116,12 @@ class BattleField:
         if(recent_gesture[1] == "Closed_Fist"):
             asyncio.create_task(self.light_attack(player))
             asyncio.create_task(self.clear_gesture_buffer(player))
-            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
+            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,False,ATTACK_CHECK_INTERVAL))
         # Heavy attack
         elif(recent_gesture == ("Closed_Fist", "Open_Palm")):
             asyncio.create_task(self.clear_gesture_buffer(player))
             asyncio.create_task(self.heavy_attack(player))
-            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,ATTACK_CHECK_INTERVAL))
+            results_check_task = asyncio.create_task(self.attack_result_check(player,enemy,True, ATTACK_CHECK_INTERVAL))
         # Light shield
         elif(recent_gesture[1] == "Victory"):
             asyncio.create_task(self.clear_gesture_buffer(player))
@@ -153,6 +157,11 @@ class BattleField:
         player.gesture_buffer = []
         clear_buffer_message = {"source":player.username, "action":"ClearGestureBuffer","args":{},"code":0}
         await self.broadcast_delay(str(clear_buffer_message))
+
+    async def invoke_menu(self, player:Player):
+        debug("player: %s invokes menu"%player.username)
+        invoke_menu_message = WS_response(source=player.username, action="InvokeMenu")
+        await self.broadcast_delay(str(invoke_menu_message))
 
     async def light_attack(self,player:Player):
         debug("%s released a light attack!"%(player.username))
@@ -211,6 +220,7 @@ class BattleField:
             else:
                 attack_result_message["action"] = "ChangeHP"
                 attack_result_message["args"]["value"] = -10
+                enemy.hp -= 10
         if is_heavy:
             if enemy.status == PStatus.HEAVY_SHIELD:
                 attack_result_message["action"] = "DefendSuccess"
@@ -218,10 +228,18 @@ class BattleField:
             else:
                 attack_result_message['action'] = "ChangeHP"
                 attack_result_message["args"]["value"] = -20
-                
+                enemy.hp -= 20
+        asyncio.create_task(self.game_over_check(player,enemy))
 
         await self.broadcast_delay(str(attack_result_message))
-        
+
+    async def game_over_check(self, player:Player, enemy:Player):
+        if enemy.hp <= 0:
+            game_over_message = WS_response(source=enemy.username, action="GameOver",args={
+                "winner":player.username,
+                "loser":enemy.username
+                })
+            await self.broadcast_delay(str(game_over_message))
 
     
 
